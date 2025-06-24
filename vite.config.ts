@@ -29,6 +29,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: '0.0.0.0',  // ← This is the key addition for Replit
+    port: 3000,       // ← Add this to match your server port
     fs: {
       strict: true,
       deny: ["**/.*"],
