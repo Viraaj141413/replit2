@@ -56,53 +56,6 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  const server = await registerRoutes(app);
-  registerChatRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    console.error('Server error:', err);
-    res.status(status).json({ message });
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // Use PORT environment variable or default to 3000 for development
-  // this serves both the API and the client.
-  const port = parseInt(process.env.PORT || '3000', 10);
-
-  const startServer = (attemptPort: number) => {
-    server.listen({
-      port: attemptPort,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`serving on port ${attemptPort}`);
-    }).on('error', (err: any) => {
-      if (err.code === 'EADDRINUSE') {
-        log(`Port ${attemptPort} is busy, trying ${attemptPort + 1}`);
-        startServer(attemptPort + 1);
-      } else {
-        console.error('Server error:', err);
-        process.exit(1);
-      }
-    });
-  };
-
-  startServer(port);
-})();
-
-// Use all routes from routes.ts
 // File creation endpoint
 app.post('/api/files/create', async (req, res) => {
   try {
@@ -181,3 +134,30 @@ app.get('/api/files/list', async (req, res) => {
     res.status(500).json({ error: 'Failed to list files' });
   }
 });
+
+(async () => {
+  const server = await registerRoutes(app);
+  registerChatRoutes(app);
+
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    console.error('Server error:', err);
+    res.status(status).json({ message });
+  });
+
+  // Setup Vite in development, serve static in production
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+
+  // FIXED: Simplified server startup for Replit Agent compatibility
+  const port = parseInt(process.env.PORT || '3000', 10);
+  
+  server.listen(port, '0.0.0.0', () => {
+    log(`serving on port ${port}`);
+  });
+})();
